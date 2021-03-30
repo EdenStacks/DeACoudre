@@ -1,0 +1,8 @@
+name: DeACoudre
+version: ${project.version}
+main: fr.nayeone.deacoudre.DeACoudre
+api-version: 1.16
+prefix: DeACoudre
+authors: [ NayeOne ]
+description: Play DeACoudre in your own world !
+website: https://github.com/LudovicAns

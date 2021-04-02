@@ -65,6 +65,7 @@ public class DeACoudreGame implements Listener {
 	private int nextPlayerNumber;
 	private GameState gameState;
 	private int timer = 30;
+	private int jumpTimer = 40;
 	private BukkitTask task = null;
 
 	public DeACoudreGame(String dacID) {
@@ -285,6 +286,13 @@ public class DeACoudreGame implements Listener {
 		);
 	}
 
+
+	@EventHandler
+	public void onPlayerJumpSuccess(PlayerOnWaterEvent event) {
+		DeACoudreGame deACoudreGame = event.getDeACoudreGame();
+		// todo
+	}
+
 	@EventHandler
 	public void onStart(DACStartEvent event) {
 		DeACoudreGame deACoudreGame = event.getDeACoudreGame();
@@ -306,6 +314,18 @@ public class DeACoudreGame implements Listener {
 					if (getAliveDeACoudreGamePlayer().size() > 1) {
 						jumper = playerList.get(nextPlayerNumber - 1);
 						jumper.getPlayer().teleport(divingLocation);
+
+						new BukkitRunnable() {
+							@Override
+							public void run() {
+								if(jumpTimer <= 0) { cancel(); }
+								if(jumper.getPlayer().getLocation().getBlock().getType() == Material.WATER){
+									Bukkit.getPluginManager().callEvent(new PlayerOnWaterEvent(deACoudreGame));
+								}
+								jumpTimer--;
+							}
+						}.runTaskTimer(DeACoudre.getPlugin(DeACoudre.class), 0, 10L);
+
 						nextPlayerNumber++;
 						if (nextPlayerNumber == playerList.size() + 1) {
 							nextPlayerNumber = 1;

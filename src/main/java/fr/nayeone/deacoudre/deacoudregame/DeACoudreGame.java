@@ -5,6 +5,7 @@ import fr.nayeone.deacoudre.deacoudregame.event.*;
 import fr.nayeone.deacoudre.deacoudregame.state.GamePlayerState;
 import fr.nayeone.deacoudre.deacoudregame.state.GameState;
 import fr.nayeone.deacoudre.deacoudregame.utils.DeACoudreGamePlayer;
+import fr.nayeone.deacoudre.deacoudregame.utils.DeACoudreGamePlayerStats;
 import fr.nayeone.deacoudre.deacoudregame.utils.DeACoudreGameSign;
 import fr.nayeone.deacoudre.deacoudregame.utils.PoolRegion;
 import fr.nayeone.deacoudre.lang.MessageFR;
@@ -35,7 +36,6 @@ import org.bukkit.scheduler.BukkitTask;
 
 import javax.annotation.Nullable;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 
 public class DeACoudreGame implements Listener {
@@ -55,6 +55,7 @@ public class DeACoudreGame implements Listener {
 	private int maxPlayers;
 	private PoolRegion poolRegion;
 	private final List<DeACoudreGameSign> deACoudreGameSigns = new ArrayList<>();
+	private Map<Location, Material> poolBlocksLoc = new HashMap<>();
 
 	private boolean isBuild;
 
@@ -65,7 +66,7 @@ public class DeACoudreGame implements Listener {
 	private int nextPlayerNumber;
 	private GameState gameState;
 	private int timer = 30;
-	private int jumpTimer = 40;
+	private BukkitTask jumpTimer = null;
 	private BukkitTask task = null;
 
 	public DeACoudreGame(String dacID) {
@@ -111,6 +112,8 @@ public class DeACoudreGame implements Listener {
 		this.poolRegion = new PoolRegion();
 		this.poolRegion.setPos1(getLocationFromCS(dacSection.getConfigurationSection("pool-region.pos1")));
 		this.poolRegion.setPos2(getLocationFromCS(dacSection.getConfigurationSection("pool-region.pos2")));
+		// remplire les locations de chaque block dans poolBlocksLoc avec leur material associé
+		this.poolBlocksLoc.forEach((location, material) -> System.out.println(material.name()));
 		this.isBuild = true;
 	}
 
@@ -271,6 +274,7 @@ public class DeACoudreGame implements Listener {
 			}
 			this.deACoudreGamePlayers.clear();
 			this.task.cancel();
+			this.jumpTimer.cancel();
 			this.timer = 10;
 			this.task = new BukkitRunnable() {
 				@Override
@@ -279,6 +283,10 @@ public class DeACoudreGame implements Listener {
 					updateState();
 				}
 			}.runTaskTimer(DeACoudre.getPlugin(DeACoudre.class), 0, 20L);
+			this.poolBlocksLoc.forEach((location, material) -> {
+				location.getBlock().setType(material);
+				System.out.println("test");
+			});
 		}
 		DeACoudre.getPluginLogger().log(
 				Level.INFO,
@@ -290,7 +298,32 @@ public class DeACoudreGame implements Listener {
 	@EventHandler
 	public void onPlayerJumpSuccess(PlayerOnWaterEvent event) {
 		DeACoudreGame deACoudreGame = event.getDeACoudreGame();
-		// todo
+		DeACoudreGamePlayer deACoudreGamePlayer = event.getDeACoudreGamePlayer();
+		if (jumpTimer != null) {
+			this.jumpTimer.cancel();
+		}
+		this.jumper = playerList.get(nextPlayerNumber - 1);
+		this.jumper.getPlayer().teleport(divingLocation);
+		DeACoudreGamePlayer oldJumper = event.getDeACoudreGamePlayer();
+		Location waterLoc = oldJumper.getPlayer().getLocation();
+		while (waterLoc.getBlock().getType().equals(Material.WATER)) {
+			waterLoc.getBlock().setType(Material.ORANGE_WOOL);
+			waterLoc.add(0, 1, 0);
+		}
+		oldJumper.getPlayer().teleport(this.poolLocation);
+		oldJumper.getPlayer().setLevel(0);
+		DeACoudreGamePlayerStats oldJumperStats = oldJumper.getDeACoudreGamePlayerStats();
+		this.timer = 15;
+		if (this.jumpTimer != null) {
+			this.jumpTimer.cancel();
+		}
+		jumpTimer = startChecker();
+
+		nextPlayerNumber++;
+		if (nextPlayerNumber == playerList.size() + 1) {
+			nextPlayerNumber = 1;
+		}
+		playerList.get(nextPlayerNumber - 1).getPlayer().sendMessage("Tu es le prochain à sauter.");
 	}
 
 	@EventHandler
@@ -305,6 +338,7 @@ public class DeACoudreGame implements Listener {
 		this.jumper = this.deACoudreGamePlayers.get(0);
 		this.jumper.getPlayer().teleport(this.divingLocation);
 		this.playerList.get(nextPlayerNumber - 1).getPlayer().sendMessage("Tu es le prochain à sauter.");
+		jumpTimer = startChecker();
 		this.task = new BukkitRunnable() {
 			@Override
 			public void run() {
@@ -315,16 +349,11 @@ public class DeACoudreGame implements Listener {
 						jumper = playerList.get(nextPlayerNumber - 1);
 						jumper.getPlayer().teleport(divingLocation);
 
-						new BukkitRunnable() {
-							@Override
-							public void run() {
-								if(jumpTimer <= 0) { cancel(); }
-								if(jumper.getPlayer().getLocation().getBlock().getType() == Material.WATER){
-									Bukkit.getPluginManager().callEvent(new PlayerOnWaterEvent(deACoudreGame));
-								}
-								jumpTimer--;
-							}
-						}.runTaskTimer(DeACoudre.getPlugin(DeACoudre.class), 0, 10L);
+						if (jumpTimer != null) {
+							jumpTimer.cancel();
+						}
+						System.out.println(jumper.getPlayer().getName());
+						jumpTimer = startChecker();
 
 						nextPlayerNumber++;
 						if (nextPlayerNumber == playerList.size() + 1) {
@@ -333,7 +362,10 @@ public class DeACoudreGame implements Listener {
 						playerList.get(nextPlayerNumber - 1).getPlayer().sendMessage("Tu es le prochain à sauter.");
 					}
 				} else {
-					jumper.getPlayer().sendMessage("Il te reste encore " + timer + " secondes");
+					jumper.getPlayer().setLevel(timer);
+					if (timer <= 5) {
+						jumper.getPlayer().playSound(jumper.getPlayer().getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 1, 1);
+					}
 				}
 				timer--;
 			}
@@ -342,6 +374,18 @@ public class DeACoudreGame implements Listener {
 				Level.INFO,
 				"[" + deACoudreGame.getName() + "] " + "La partie vient de commencer"
 		);
+	}
+
+	public BukkitTask startChecker() {
+		DeACoudreGame deACoudreGame = this;
+		return new BukkitRunnable() {
+			@Override
+			public void run() {
+				if(jumper.getPlayer().getLocation().getBlock().getType() == Material.WATER) {
+					Bukkit.getPluginManager().callEvent(new PlayerOnWaterEvent(deACoudreGame, jumper));
+				}
+			}
+		}.runTaskTimer(DeACoudre.getPlugin(DeACoudre.class), 0, 4L);
 	}
 
 	@EventHandler
@@ -381,6 +425,7 @@ public class DeACoudreGame implements Listener {
 			deACoudreGamePlayer.getDeACoudreGamePlayerStats().save();
 			leaveMessage(player);
 			player.getInventory().setHeldItemSlot(4);
+			player.setLevel(0);
 			updateState();
 			DeACoudre.getPluginLogger().log(
 					Level.INFO,
@@ -426,7 +471,13 @@ public class DeACoudreGame implements Listener {
 	public void onPlayerTakeDamage(EntityDamageEvent event) {
 		if (!(event.getEntity() instanceof Player)) return;
 		Player player = (Player) event.getEntity();
-		if (playerIsInDeACoudreGame(player)) {
+		if (playerIsInDeACoudreGame(player) && event.getCause().equals(EntityDamageEvent.DamageCause.FALL)) {
+			if (this.jumper.getPlayer().equals(player)) {
+				Bukkit.getPluginManager().callEvent(new PlayerQuitDACEvent(player, this));
+				player.sendMessage("Tu as perdu");
+				updateState();
+				event.setCancelled(true);
+			}
 			event.setCancelled(true);
 		}
  	}

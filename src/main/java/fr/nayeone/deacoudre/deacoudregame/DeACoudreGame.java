@@ -55,7 +55,7 @@ public class DeACoudreGame implements Listener {
 	private int maxPlayers;
 	private PoolRegion poolRegion;
 	private final List<DeACoudreGameSign> deACoudreGameSigns = new ArrayList<>();
-	private Map<Location, Material> poolBlocksLoc = new HashMap<>();
+	private List<Location> poolBlocksLoc = new ArrayList<>();
 
 	private boolean isBuild;
 
@@ -112,10 +112,9 @@ public class DeACoudreGame implements Listener {
 		this.poolRegion = new PoolRegion();
 		this.poolRegion.setPos1(getLocationFromCS(dacSection.getConfigurationSection("pool-region.pos1")));
 		this.poolRegion.setPos2(getLocationFromCS(dacSection.getConfigurationSection("pool-region.pos2")));
-		// remplire les locations de chaque block dans poolBlocksLoc avec leur material associé
-		this.poolBlocksLoc.forEach((location, material) -> System.out.println(material.name()));
 		this.isBuild = true;
 	}
+
 
 	private Location getLocationFromCS(ConfigurationSection cs) {
 		double x = cs.getDouble("x");
@@ -283,10 +282,7 @@ public class DeACoudreGame implements Listener {
 					updateState();
 				}
 			}.runTaskTimer(DeACoudre.getPlugin(DeACoudre.class), 0, 20L);
-			this.poolBlocksLoc.forEach((location, material) -> {
-				location.getBlock().setType(material);
-				System.out.println("test");
-			});
+			this.poolBlocksLoc.forEach(location -> location.getBlock().setType(Material.WATER));
 		}
 		DeACoudre.getPluginLogger().log(
 				Level.INFO,
@@ -294,47 +290,83 @@ public class DeACoudreGame implements Listener {
 		);
 	}
 
+	private boolean isPerfectJump(Location jumperPos) {
+		List<Block> blockAround = new ArrayList<>();
+		blockAround.add(jumperPos.add(1, 0, 0).getBlock());
+		blockAround.add(jumperPos.add(-2, 0, 0).getBlock());
+		blockAround.add(jumperPos.add(1, 0, 1).getBlock());
+		blockAround.add(jumperPos.add(0, 0, -2).getBlock());
+		for (Block block : blockAround) {
+			if (block.getType().equals(Material.WATER)) {
+				return false;
+			}
+		}
+		return true;
+	}
 
-	@EventHandler
-	public void onPlayerJumpSuccess(PlayerOnWaterEvent event) {
-		DeACoudreGame deACoudreGame = event.getDeACoudreGame();
-		DeACoudreGamePlayer deACoudreGamePlayer = event.getDeACoudreGamePlayer();
+	private void nextJumper() {
 		if (jumpTimer != null) {
 			this.jumpTimer.cancel();
 		}
 		this.jumper = playerList.get(nextPlayerNumber - 1);
 		this.jumper.getPlayer().teleport(divingLocation);
-		DeACoudreGamePlayer oldJumper = event.getDeACoudreGamePlayer();
-		Location waterLoc = oldJumper.getPlayer().getLocation();
-		while (waterLoc.getBlock().getType().equals(Material.WATER)) {
-			waterLoc.getBlock().setType(Material.ORANGE_WOOL);
-			waterLoc.add(0, 1, 0);
-		}
-		oldJumper.getPlayer().teleport(this.poolLocation);
-		oldJumper.getPlayer().setLevel(0);
-		DeACoudreGamePlayerStats oldJumperStats = oldJumper.getDeACoudreGamePlayerStats();
 		this.timer = 15;
-		if (this.jumpTimer != null) {
-			this.jumpTimer.cancel();
-		}
 		jumpTimer = startChecker();
 
 		nextPlayerNumber++;
 		if (nextPlayerNumber == playerList.size() + 1) {
 			nextPlayerNumber = 1;
 		}
+		while (!playerList.get(nextPlayerNumber - 1).isAlive()) {
+			if (nextPlayerNumber == playerList.size() + 1) {
+				nextPlayerNumber = 1;
+			}
+			nextPlayerNumber++;
+		}
 		playerList.get(nextPlayerNumber - 1).getPlayer().sendMessage("Tu es le prochain à sauter.");
+	}
+
+
+	@EventHandler
+	public void onPlayerJumpSuccess(PlayerOnWaterEvent event) {
+		DeACoudreGame deACoudreGame = event.getDeACoudreGame();
+		if (!deACoudreGame.equals(this)) return;
+		if (jumpTimer != null) {
+			this.jumpTimer.cancel();
+		}
+		nextJumper();
+		DeACoudreGamePlayer oldJumper = event.getDeACoudreGamePlayer();
+		Material blockToFill = Material.ORANGE_WOOL;
+		if (isPerfectJump(oldJumper.getPlayer().getLocation())) {
+			oldJumper.getPlayer().sendMessage("Tu viens de faire un dé à coudre !");
+			oldJumper.setPerfectJumpCount(oldJumper.getPerfectJumpCount() + 1);
+			oldJumper.setLifePoint(oldJumper.getLifePoint() + 1);
+			blockToFill = Material.EMERALD_BLOCK;
+		}
+		Location waterLoc = oldJumper.getPlayer().getLocation();
+		Location waterLoc2 = waterLoc.clone();
+		while (waterLoc.getBlock().getType().equals(Material.WATER)) {
+			waterLoc.getBlock().setType(blockToFill);
+			this.poolBlocksLoc.add(waterLoc.clone());
+			waterLoc.add(0, 1, 0);
+		}
+		waterLoc2.add(0, -1, 0);
+		while (waterLoc2.getBlock().getType().equals(Material.WATER)) {
+			waterLoc2.getBlock().setType(blockToFill);
+			this.poolBlocksLoc.add(waterLoc2.clone());
+			waterLoc2.add(0, -1, 0);
+		}
+		oldJumper.getPlayer().teleport(this.poolLocation);
+		oldJumper.getPlayer().setLevel(0);
 	}
 
 	@EventHandler
 	public void onStart(DACStartEvent event) {
 		DeACoudreGame deACoudreGame = event.getDeACoudreGame();
+		if (!deACoudreGame.equals(this)) return;
 		this.playerList.clear();
 		this.playerList.addAll(this.deACoudreGamePlayers);
 		this.nextPlayerNumber = 2;
-		for (DeACoudreGamePlayer deACoudreGamePlayer : this.playerList) {
-			System.out.println(deACoudreGamePlayer.getPlayer().getName());
-		}
 		this.jumper = this.deACoudreGamePlayers.get(0);
 		this.jumper.getPlayer().teleport(this.divingLocation);
 		this.playerList.get(nextPlayerNumber - 1).getPlayer().sendMessage("Tu es le prochain à sauter.");
@@ -385,7 +417,7 @@ public class DeACoudreGame implements Listener {
 					Bukkit.getPluginManager().callEvent(new PlayerOnWaterEvent(deACoudreGame, jumper));
 				}
 			}
-		}.runTaskTimer(DeACoudre.getPlugin(DeACoudre.class), 0, 4L);
+		}.runTaskTimer(DeACoudre.getPlugin(DeACoudre.class), 0, 1L);
 	}
 
 	@EventHandler
@@ -473,10 +505,19 @@ public class DeACoudreGame implements Listener {
 		Player player = (Player) event.getEntity();
 		if (playerIsInDeACoudreGame(player) && event.getCause().equals(EntityDamageEvent.DamageCause.FALL)) {
 			if (this.jumper.getPlayer().equals(player)) {
-				Bukkit.getPluginManager().callEvent(new PlayerQuitDACEvent(player, this));
-				player.sendMessage("Tu as perdu");
-				updateState();
-				event.setCancelled(true);
+				if (this.jumper.getLifePoint() <= 1) {
+					Bukkit.getPluginManager().callEvent(new PlayerQuitDACEvent(player, this));
+					player.sendMessage("Tu as perdu");
+					updateState();
+					event.setCancelled(true);
+				} else {
+					this.jumper.setLifePoint(this.jumper.getLifePoint() - 1);
+					player.sendMessage("Tu as perdu une vie");
+					this.jumper.getPlayer().teleport(this.poolLocation);
+					this.jumper.getPlayer().setLevel(0);
+					nextJumper();
+					event.setCancelled(true);
+				}
 			}
 			event.setCancelled(true);
 		}

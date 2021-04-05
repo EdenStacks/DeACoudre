@@ -268,7 +268,7 @@ public class DeACoudreGame implements Listener {
 				player.getInventory().clear();
 				player.teleport(this.endLocation);
 			});
-			if (getAliveDeACoudreGamePlayer().size() != 0) {
+			if (getAliveDeACoudreGamePlayer().size() != 0 && deACoudreGame.getPoolRegion().hasWaterInside()) {
 				this.winner = getAliveDeACoudreGamePlayer().get(0);
 			}
 			this.deACoudreGamePlayers.clear();
@@ -358,6 +358,7 @@ public class DeACoudreGame implements Listener {
 		}
 		oldJumper.getPlayer().teleport(this.poolLocation);
 		oldJumper.getPlayer().setLevel(0);
+		updateState();
 	}
 
 	@EventHandler
@@ -559,7 +560,11 @@ public class DeACoudreGame implements Listener {
 				if (getAliveDeACoudreGamePlayer().size() <= 1) {
 					this.gameState = GameState.FINISH;
 					Bukkit.getPluginManager().callEvent(new GameStateChangeEvent(this, GameState.FINISH, GameState.IN_PROGRESS));
+				} else if (!this.poolRegion.hasWaterInside()) {
+					this.gameState = GameState.FINISH;
+					Bukkit.getPluginManager().callEvent(new GameStateChangeEvent(this, GameState.FINISH, GameState.IN_PROGRESS));
 				}
+				break;
 			case FINISH:
 				if (this.timer == 0) {
 					this.task.cancel();

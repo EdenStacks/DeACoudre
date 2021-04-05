@@ -1,16 +1,8 @@
 package fr.nayeone.deacoudre.deacoudregame.utils;
 
 import fr.nayeone.deacoudre.deacoudregame.DeACoudreGame;
-import fr.nayeone.deacoudre.deacoudregame.event.PlayerJoinDACEvent;
-import fr.nayeone.deacoudre.deacoudregame.event.PlayerQuitDACEvent;
 import fr.nayeone.deacoudre.deacoudregame.state.GamePlayerState;
 import org.bukkit.entity.Player;
-import org.bukkit.event.EventHandler;
-import org.bukkit.event.Listener;
-
-import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.List;
 
 public class DeACoudreGamePlayer {
 

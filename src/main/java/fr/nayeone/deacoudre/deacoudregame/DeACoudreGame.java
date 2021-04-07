@@ -4,10 +4,7 @@ import fr.nayeone.deacoudre.DeACoudre;
 import fr.nayeone.deacoudre.deacoudregame.event.*;
 import fr.nayeone.deacoudre.deacoudregame.state.GamePlayerState;
 import fr.nayeone.deacoudre.deacoudregame.state.GameState;
-import fr.nayeone.deacoudre.deacoudregame.utils.DeACoudreGamePlayer;
-import fr.nayeone.deacoudre.deacoudregame.utils.DeACoudreGamePlayerStats;
-import fr.nayeone.deacoudre.deacoudregame.utils.DeACoudreGameSign;
-import fr.nayeone.deacoudre.deacoudregame.utils.PoolRegion;
+import fr.nayeone.deacoudre.deacoudregame.utils.*;
 import fr.nayeone.deacoudre.lang.MessageFR;
 import fr.nayeone.deacoudre.utils.ConfigurationUtils;
 import net.kyori.adventure.text.Component;
@@ -55,10 +52,10 @@ public class DeACoudreGame implements Listener {
 	private int maxPlayers;
 	private PoolRegion poolRegion;
 	private final List<DeACoudreGameSign> deACoudreGameSigns = new ArrayList<>();
-	private List<Location> poolBlocksLoc = new ArrayList<>();
+	private final List<Location> poolBlocksLoc = new ArrayList<>();
 
 	private boolean isBuild;
-
+	private final DeACoudreScoreboard deACoudreScoreboard = new DeACoudreScoreboard(this);
 	private final List<DeACoudreGamePlayer> deACoudreGamePlayers = new ArrayList<>();
 	private final List<DeACoudreGamePlayer> playerList = new ArrayList<>();
 	private DeACoudreGamePlayer winner;
@@ -379,24 +376,11 @@ public class DeACoudreGame implements Listener {
 					timer = 15;
 					Bukkit.getPluginManager().callEvent(new PlayerQuitDACEvent(jumper.getPlayer(), deACoudreGame));
 					if (getAliveDeACoudreGamePlayer().size() > 1) {
-						jumper = playerList.get(nextPlayerNumber - 1);
-						jumper.getPlayer().teleport(divingLocation);
-
-						if (jumpTimer != null) {
-							jumpTimer.cancel();
-						}
-						System.out.println(jumper.getPlayer().getName());
-						jumpTimer = startChecker();
-
-						nextPlayerNumber++;
-						if (nextPlayerNumber == playerList.size() + 1) {
-							nextPlayerNumber = 1;
-						}
-						playerList.get(nextPlayerNumber - 1).getPlayer().sendMessage("Tu es le prochain à sauter.");
+						nextJumper();
 					}
 				} else {
 					jumper.getPlayer().setLevel(timer);
-					if (timer <= 5) {
+					if (timer <= 8) {
 						jumper.getPlayer().playSound(jumper.getPlayer().getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 1, 1);
 					}
 				}
@@ -434,6 +418,7 @@ public class DeACoudreGame implements Listener {
 			LobbyInventory.setToPlayer(player);
 			player.setGameMode(GameMode.ADVENTURE);
 			joinMessage(player);
+			this.deACoudreScoreboard.addToPlayer(player);
 			player.getInventory().setHeldItemSlot(4);
 			updateState();
 			DeACoudre.getPluginLogger().log(
@@ -456,6 +441,7 @@ public class DeACoudreGame implements Listener {
 			player.getInventory().clear();
 			player.teleport(this.endLocation);
 			deACoudreGamePlayer.getDeACoudreGamePlayerStats().save();
+			this.deACoudreScoreboard.removeToPlayer(player);
 			leaveMessage(player);
 			player.getInventory().setHeldItemSlot(4);
 			player.setLevel(0);
@@ -767,5 +753,42 @@ public class DeACoudreGame implements Listener {
 
 	public int getTimer() {
 		return timer;
+	}
+
+	@Nullable
+	public DeACoudreGamePlayer getNextJumper() {
+		if (playerList.size() < 1) {
+			return null;
+		}
+		return playerList.get(this.nextPlayerNumber - 1);
+	}
+
+	@Nullable
+	public DeACoudreGamePlayer getJumper() {
+		return this.jumper;
+	}
+
+	public String getJumperName() {
+		String jumperName;
+		if (this.getJumper() == null) {
+			jumperName = "Personne";
+		} else {
+			jumperName = this.getJumper().getPlayer().getName();
+		}
+		return jumperName;
+	}
+
+	public String getNextJumperName() {
+		String nextJumperName;
+		if (this.getNextJumper() == null) {
+			nextJumperName = "Personne";
+		} else {
+			nextJumperName = this.getNextJumper().getPlayer().getName();
+		}
+		return nextJumperName;
+	}
+
+	public DeACoudreScoreboard getDeACoudreScoreboard() {
+		return deACoudreScoreboard;
 	}
 }

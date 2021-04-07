@@ -1,11 +1,12 @@
 package fr.nayeone.deacoudre;
 
 import fr.nayeone.deacoudre.deacoudregame.utils.DeACoudreGamePlayer;
+import fr.nayeone.deacoudre.deacoudregame.utils.DeACoudreScoreboard;
 import fr.nayeone.deacoudre.manager.CommandManager;
 import fr.nayeone.deacoudre.manager.ConfigurationManager;
 import fr.nayeone.deacoudre.manager.ListenerManager;
 import fr.nayeone.deacoudre.manager.PlayerdataManager;
-import fr.nayeone.deacoudre.runnable.SignUpdateRunnable;
+import fr.nayeone.deacoudre.runnable.UpdaterRunnable;
 import fr.nayeone.deacoudre.utils.ConfigurationUtils;
 import fr.nayeone.deacoudre.deacoudregame.DeACoudreGame;
 import fr.nayeone.deacoudre.deacoudregame.utils.DeACoudreGameSign;
@@ -40,7 +41,7 @@ public final class DeACoudre extends JavaPlugin{
 		getLogger().log(Level.INFO, "Building all DAC ...");
 		initAllDAC();
 		getLogger().log(Level.INFO, "End of DAC build.");
-		BukkitRunnable signUpdateRunnable = new SignUpdateRunnable();
+		BukkitRunnable signUpdateRunnable = new UpdaterRunnable();
 		signUpdateRunnable.runTaskTimer(this, 1, 20);
 		getLogger().log(Level.INFO, "Plugin enabled took " + (System.currentTimeMillis() - delay) + " ms");
 	}
@@ -83,6 +84,14 @@ public final class DeACoudre extends JavaPlugin{
 			signs.addAll(deACoudreGame.getDeACoudreGameSigns());
 		}
 		return signs;
+	}
+
+	public static List<DeACoudreScoreboard> getAllScoreBoard() {
+		List<DeACoudreScoreboard> scoreboards = new ArrayList<>();
+		for (DeACoudreGame deACoudreGame : allDACGames) {
+			scoreboards.add(deACoudreGame.getDeACoudreScoreboard());
+		}
+		return scoreboards;
 	}
 
 	public static ConfigurationManager getConfigurationManager() {

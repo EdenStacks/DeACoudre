@@ -1,7 +1,6 @@
 package fr.nayeone.deacoudre.deacoudregame.utils;
 
 import fr.nayeone.deacoudre.deacoudregame.DeACoudreGame;
-import net.kyori.adventure.text.Component;
 import org.bukkit.ChatColor;
 import org.bukkit.block.Sign;
 
@@ -40,44 +39,44 @@ public class DeACoudreGameSign {
 
 	public void update() {
 		if (this.deACoudreGame.getDisplayName() != null && !this.deACoudreGame.getDisplayName().equalsIgnoreCase("none")) {
-			this.sign.line(0, Component.text(this.deACoudreGame.getDisplayName()));
+			this.sign.setLine(0, this.deACoudreGame.getDisplayName());
 		} else {
-			this.sign.line(0, Component.text(this.deACoudreGame.getName()));
+			this.sign.setLine(0, this.deACoudreGame.getName());
 		}
 		if (!this.deACoudreGame.isBuild()) {
-			this.sign.line(1, Component.text(""));
-			this.sign.line(2, Component.text(ChatColor.RED + "Fermée"));
-			this.sign.line(3, Component.text(""));
+			this.sign.setLine(1, "");
+			this.sign.setLine(2, ChatColor.RED + "Fermée");
+			this.sign.setLine(3, "");
 			this.sign.update();
 			return;
 		}
 		switch (this.deACoudreGame.getGameState()) {
 			case READY:
 			case WAITING:
-				this.sign.line(1, Component.text(this.deACoudreGame.getDeACoudreGamePlayers().size()
-						+ " / " + this.deACoudreGame.getMaxPlayers()));
+				this.sign.setLine(1, this.deACoudreGame.getDeACoudreGamePlayers().size()
+						+ " / " + this.deACoudreGame.getMaxPlayers());
 				int missingPlayerAmount = this.deACoudreGame.getMinPlayers() - this.getDeACoudreGame().getDeACoudreGamePlayers().size();
 				if (missingPlayerAmount <= 0) {
-					this.sign.line(2, Component.text(ChatColor.GREEN + "Prêt" + ChatColor.WHITE
-							+ " (" + ChatColor.YELLOW + this.deACoudreGame.getTimer() + ChatColor.WHITE + ")"));
+					this.sign.setLine(2, ChatColor.GREEN + "Prêt" + ChatColor.WHITE
+							+ " (" + ChatColor.YELLOW + this.deACoudreGame.getTimer() + ChatColor.WHITE + ")");
 				} else {
-					this.sign.line(2, Component.text(missingPlayerAmount + " manquants"));
+					this.sign.setLine(2, missingPlayerAmount + " manquants");
 				}
-				this.sign.line(3, Component.text(ChatColor.GREEN + "En attente ..."));
+				this.sign.setLine(3, ChatColor.GREEN + "En attente ...");
 				break;
 			case IN_PROGRESS:
-				this.sign.line(1, Component.text(this.deACoudreGame.getAliveDeACoudreGamePlayer().size() + " en jeu"));
-				this.sign.line(2, Component.text("DàC : " + this.deACoudreGame.getTotalPerfectJump()));
-				this.sign.line(3, Component.text(ChatColor.GOLD + "En cours ..."));
+				this.sign.setLine(1, this.deACoudreGame.getAliveDeACoudreGamePlayer().size() + " en jeu");
+				this.sign.setLine(2, "DàC : " + this.deACoudreGame.getTotalPerfectJump());
+				this.sign.setLine(3, ChatColor.GOLD + "En cours ...");
 				break;
 			case FINISH:
-				this.sign.line(1, Component.text("Bravo à"));
+				this.sign.setLine(1, "Bravo à");
 				if (this.deACoudreGame.getWinner() != null) {
-					this.sign.line(2, Component.text(this.deACoudreGame.getWinner().getPlayer().getName()));
+					this.sign.setLine(2, this.deACoudreGame.getWinner().getPlayer().getName());
 				} else {
-					this.sign.line(2, Component.text("personne :("));
+					this.sign.setLine(2, "personne :(");
 				}
-				this.sign.line(3, Component.text(ChatColor.LIGHT_PURPLE + "Terminé !"));
+				this.sign.setLine(3, ChatColor.LIGHT_PURPLE + "Terminé !");
 				break;
 		}
 		this.sign.update();

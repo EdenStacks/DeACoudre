@@ -7,7 +7,6 @@ import fr.nayeone.deacoudre.deacoudregame.state.GameState;
 import fr.nayeone.deacoudre.deacoudregame.utils.*;
 import fr.nayeone.deacoudre.lang.MessageFR;
 import fr.nayeone.deacoudre.utils.ConfigurationUtils;
-import net.kyori.adventure.text.Component;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.Sign;
@@ -730,7 +729,7 @@ public class DeACoudreGame implements Listener {
 		static {
 			ItemStack leaveItem = new ItemStack(Material.DARK_OAK_DOOR);
 			ItemMeta leaveItemMeta = leaveItem.getItemMeta();
-			leaveItemMeta.displayName(Component.text(ChatColor.DARK_GRAY + "" + ChatColor.BOLD + "« " + ChatColor.RED + "Retour au spawn"));
+			leaveItemMeta.setDisplayName(ChatColor.DARK_GRAY + "" + ChatColor.BOLD + "« " + ChatColor.RED + "Retour au spawn");
 			leaveItem.setItemMeta(leaveItemMeta);
 			itemAndPos.put(leaveItem, 8);
 			LobbyInventory.leaveItem = leaveItem;

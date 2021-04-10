@@ -108,6 +108,7 @@ public class DeACoudreGame implements Listener {
 		this.poolRegion = new PoolRegion();
 		this.poolRegion.setPos1(getLocationFromCS(dacSection.getConfigurationSection("pool-region.pos1")));
 		this.poolRegion.setPos2(getLocationFromCS(dacSection.getConfigurationSection("pool-region.pos2")));
+		this.deACoudreScoreboard.build();
 		this.isBuild = true;
 	}
 
@@ -200,7 +201,7 @@ public class DeACoudreGame implements Listener {
 		DeACoudreGamePlayer deACoudreGamePlayer = getDeACoudreGamePlayer(player);
 		if (deACoudreGamePlayer == null) return;
 
-		Bukkit.getPluginManager().callEvent(new PlayerQuitDACEvent(player, this));
+		Bukkit.getPluginManager().callEvent(new PlayerQuitDACEvent(player, this, QuitCause.LEAVE));
 	}
 
 	@EventHandler
@@ -228,7 +229,7 @@ public class DeACoudreGame implements Listener {
 				if (!(event.getAction().equals(Action.RIGHT_CLICK_BLOCK) || event.getAction().equals(Action.RIGHT_CLICK_AIR))) {
 					return;
 				}
-				Bukkit.getPluginManager().callEvent(new PlayerQuitDACEvent(player, this));
+				Bukkit.getPluginManager().callEvent(new PlayerQuitDACEvent(player, this, QuitCause.LEAVE));
 			}
 			event.setCancelled(true);
 		}
@@ -262,12 +263,17 @@ public class DeACoudreGame implements Listener {
 			this.deACoudreGamePlayers.forEach(deACoudreGamePlayer -> {
 				Player player = deACoudreGamePlayer.getPlayer();
 				player.getInventory().clear();
+				player.setLevel(0);
+				this.deACoudreScoreboard.removeToPlayer(player);
 				player.teleport(this.endLocation);
 			});
 			if (getAliveDeACoudreGamePlayer().size() != 0 && deACoudreGame.getPoolRegion().hasWaterInside()) {
 				this.winner = getAliveDeACoudreGamePlayer().get(0);
+				Bukkit.getPluginManager().callEvent(new PlayerWinEvent(this, this.winner.getPlayer()));
 			}
 			this.deACoudreGamePlayers.clear();
+			this.playerList.clear();
+			this.jumper = null;
 			this.task.cancel();
 			this.jumpTimer.cancel();
 			this.timer = 10;
@@ -319,24 +325,31 @@ public class DeACoudreGame implements Listener {
 			}
 			nextPlayerNumber++;
 		}
-		playerList.get(nextPlayerNumber - 1).getPlayer().sendMessage("Tu es le prochain à sauter.");
+		playerList.get(nextPlayerNumber - 1).getPlayer().sendMessage(getDeACoudreGamePrefix() + "Tu es le prochain à sauter.");
 	}
 
+	@EventHandler
+	public void onPlayerWInEvent(PlayerWinEvent event) {
+		DeACoudreGame deACoudreGame = event.getDeACoudreGame();
+		if (!deACoudreGame.equals(this)) return;
+		Player winner = event.getPlayer();
+		winner.sendMessage(getDeACoudreGamePrefix() + "Bravo ! Tu as gagné cette partie. (§e+" + this.winPoints + " points§f)");
+	}
 
 	@EventHandler
 	public void onPlayerJumpSuccess(PlayerOnWaterEvent event) {
 		DeACoudreGame deACoudreGame = event.getDeACoudreGame();
+		Sound sound = null;
 		if (!deACoudreGame.equals(this)) return;
-		if (jumpTimer != null) {
-			this.jumpTimer.cancel();
-		}
 		nextJumper();
 		DeACoudreGamePlayer oldJumper = event.getDeACoudreGamePlayer();
 		Material blockToFill = Material.ORANGE_WOOL;
 		if (isPerfectJump(oldJumper.getPlayer().getLocation())) {
-			oldJumper.getPlayer().sendMessage("Tu viens de faire un dé à coudre !");
+			oldJumper.getPlayer().sendMessage(getDeACoudreGamePrefix() + "Tu viens de faire un dé à coudre !");
 			oldJumper.setPerfectJumpCount(oldJumper.getPerfectJumpCount() + 1);
 			oldJumper.setLifePoint(oldJumper.getLifePoint() + 1);
+			oldJumper.getPlayer().setLevel(oldJumper.getLifePoint());
+			sound = Sound.BLOCK_NOTE_BLOCK_GUITAR;
 			blockToFill = Material.EMERALD_BLOCK;
 		}
 		Location waterLoc = oldJumper.getPlayer().getLocation();
@@ -353,7 +366,9 @@ public class DeACoudreGame implements Listener {
 			waterLoc2.add(0, -1, 0);
 		}
 		oldJumper.getPlayer().teleport(this.poolLocation);
-		oldJumper.getPlayer().setLevel(0);
+		if (sound != null) {
+			oldJumper.getPlayer().playSound(oldJumper.getPlayer().getLocation(), sound, 0.5F, 1);
+		}
 		updateState();
 	}
 
@@ -366,22 +381,19 @@ public class DeACoudreGame implements Listener {
 		this.nextPlayerNumber = 2;
 		this.jumper = this.deACoudreGamePlayers.get(0);
 		this.jumper.getPlayer().teleport(this.divingLocation);
-		this.playerList.get(nextPlayerNumber - 1).getPlayer().sendMessage("Tu es le prochain à sauter.");
+		this.playerList.get(nextPlayerNumber - 1).getPlayer().sendMessage(getDeACoudreGamePrefix() + "Tu es le prochain à sauter.");
 		jumpTimer = startChecker();
 		this.task = new BukkitRunnable() {
 			@Override
 			public void run() {
 				if (timer == 0) {
 					timer = 15;
-					Bukkit.getPluginManager().callEvent(new PlayerQuitDACEvent(jumper.getPlayer(), deACoudreGame));
+					Bukkit.getPluginManager().callEvent(new PlayerQuitDACEvent(jumper.getPlayer(), deACoudreGame, QuitCause.AFK));
 					if (getAliveDeACoudreGamePlayer().size() > 1) {
 						nextJumper();
 					}
-				} else {
-					jumper.getPlayer().setLevel(timer);
-					if (timer <= 8) {
-						jumper.getPlayer().playSound(jumper.getPlayer().getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 1, 1);
-					}
+				} else if (timer <= 8) {
+					jumper.getPlayer().playSound(jumper.getPlayer().getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 1, 1);
 				}
 				timer--;
 			}
@@ -419,6 +431,7 @@ public class DeACoudreGame implements Listener {
 			joinMessage(player);
 			this.deACoudreScoreboard.addToPlayer(player);
 			player.getInventory().setHeldItemSlot(4);
+			player.setLevel(deACoudreGamePlayer.getLifePoint());
 			updateState();
 			DeACoudre.getPluginLogger().log(
 					Level.INFO,
@@ -433,6 +446,7 @@ public class DeACoudreGame implements Listener {
 		Player player = event.getPlayer();
 		if (deACoudreGame.equals(this)) {
 			DeACoudreGamePlayer deACoudreGamePlayer = getDeACoudreGamePlayer(player);
+			QuitCause quitCause = event.getQuitCause();
 			if (this.gameState.equals(GameState.IN_PROGRESS)) {
 				this.playerList.get(this.playerList.indexOf(deACoudreGamePlayer)).setAlive(false);
 			}
@@ -441,10 +455,17 @@ public class DeACoudreGame implements Listener {
 			player.teleport(this.endLocation);
 			deACoudreGamePlayer.getDeACoudreGamePlayerStats().save();
 			this.deACoudreScoreboard.removeToPlayer(player);
-			leaveMessage(player);
 			player.getInventory().setHeldItemSlot(4);
 			player.setLevel(0);
 			updateState();
+			switch (quitCause) {
+				case LEAVE:
+					leaveMessage(player);
+					break;
+				case AFK:
+					afkMessage(player);
+					break;
+			}
 			DeACoudre.getPluginLogger().log(
 					Level.INFO,
 					"[" + deACoudreGame.getName() + "] " + "Le joueur " + player.getName() + " a quitté la partie."
@@ -492,18 +513,24 @@ public class DeACoudreGame implements Listener {
 		if (playerIsInDeACoudreGame(player) && event.getCause().equals(EntityDamageEvent.DamageCause.FALL)) {
 			if (this.jumper.getPlayer().equals(player)) {
 				if (this.jumper.getLifePoint() <= 1) {
-					Bukkit.getPluginManager().callEvent(new PlayerQuitDACEvent(player, this));
-					player.sendMessage("Tu as perdu");
+					this.jumper.getPlayer().teleport(this.spectatorLocation);
+					this.jumper.getPlayer().sendMessage(getDeACoudreGamePrefix() + "Tu as été éliminé.");
+					this.jumper.getPlayer().playSound(this.jumper.getPlayer().getLocation(), Sound.BLOCK_BELL_USE, 0.5F, 1);
+					this.jumper.setAlive(false);
+					this.jumper.getPlayer().setLevel(this.jumper.getLifePoint());
+					if (!(getAliveDeACoudreGamePlayer().size() <= 1)) {
+						nextJumper();
+					}
 					updateState();
-					event.setCancelled(true);
 				} else {
 					this.jumper.setLifePoint(this.jumper.getLifePoint() - 1);
-					player.sendMessage("Tu as perdu une vie");
+					player.sendMessage(getDeACoudreGamePrefix() + "Tu as perdu une vie.");
+					player.playSound(player.getLocation(), Sound.BLOCK_BELL_USE, 0.5F, 1);
 					this.jumper.getPlayer().teleport(this.poolLocation);
-					this.jumper.getPlayer().setLevel(0);
+					this.jumper.getPlayer().setLevel(this.jumper.getLifePoint());
 					nextJumper();
-					event.setCancelled(true);
 				}
+				event.setCancelled(true);
 			}
 			event.setCancelled(true);
 		}
@@ -609,6 +636,15 @@ public class DeACoudreGame implements Listener {
 			displayname = this.name;
 		}
 		return displayname + ChatColor.DARK_GRAY + "" + ChatColor.BOLD + " » " + ChatColor.RESET;
+	}
+
+	private void afkMessage(Player player) {
+		this.deACoudreGamePlayers.forEach(deACoudreGamePlayer1 -> {
+			Player player1 = deACoudreGamePlayer1.getPlayer();
+			if (player1.equals(player)) return;
+			player1.sendMessage(getDeACoudreGamePrefix() + ChatColor.YELLOW +
+					player.getName() + ChatColor.RED + " a perdu car il n'a pas sauté.");
+		});
 	}
 
 	private void leaveMessage(Player leaver) {

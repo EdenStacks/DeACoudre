@@ -10,7 +10,6 @@ import fr.nayeone.deacoudre.lang.MessageFR;
 import fr.nayeone.deacoudre.utils.ConfigurationUtils;
 import fr.nayeone.deacoudre.deacoudregame.event.DACSignCreateEvent;
 import fr.nayeone.deacoudre.deacoudregame.utils.DeACoudreGameSign;
-import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Sound;
@@ -376,10 +375,10 @@ public class DAC extends BaseCommand {
 				s.getDeACoudreGame().getDeACoudreGameSigns().remove(s);
 				DeACoudre.getConfigurationManager().saveFile("DAC.yml");
 				player.sendMessage(MessageFR.dacUnSetSign.replace("{DAC}", s.getDeACoudreGame().getName()));
-				sign.line(0, Component.text(""));
-				sign.line(1, Component.text(""));
-				sign.line(2, Component.text(""));
-				sign.line(3, Component.text(""));
+				sign.setLine(0, "");
+				sign.setLine(1, "");
+				sign.setLine(2, "");
+				sign.setLine(3, "");
 				sign.update();
 				return;
 			}

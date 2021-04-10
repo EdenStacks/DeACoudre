@@ -25,7 +25,7 @@
                 <artifactId>maven-jar-plugin</artifactId>
                 <version>3.2.0</version>
                 <configuration>
-                    <outputDirectory>C:/Users/theol/Desktop/Ser/plugins</outputDirectory>
+                    <outputDirectory>D:/Desktop/Ser/plugins</outputDirectory>
                 </configuration>
             </plugin>
             <plugin>

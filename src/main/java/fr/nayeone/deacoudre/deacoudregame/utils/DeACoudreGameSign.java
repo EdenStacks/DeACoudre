@@ -1,8 +1,10 @@
 package fr.nayeone.deacoudre.deacoudregame.utils;
 
+import fr.nayeone.deacoudre.DeACoudre;
 import fr.nayeone.deacoudre.deacoudregame.DeACoudreGame;
 import org.bukkit.ChatColor;
 import org.bukkit.block.Sign;
+import org.bukkit.scheduler.BukkitRunnable;
 
 public class DeACoudreGameSign {
 
@@ -60,23 +62,69 @@ public class DeACoudreGameSign {
 					this.sign.setLine(2, ChatColor.GREEN + "Prêt" + ChatColor.WHITE
 							+ " (" + ChatColor.YELLOW + this.deACoudreGame.getTimer() + ChatColor.WHITE + ")");
 				} else {
-					this.sign.setLine(2, missingPlayerAmount + " manquants");
+					this.sign.setLine(2, "§aEn attente");
 				}
-				this.sign.setLine(3, ChatColor.GREEN + "En attente ...");
+				new BukkitRunnable() {
+					int timer = 0;
+
+					final String[] display = { "§2■§a■■■■■■■■■","§a■§2■§a■■■■■■■■","§a■■§2■§a■■■■■■■","§a■■■§2■§a■■■■■■","§a■■■■§2■§a■■■■■",
+							"§a■■■■■§2■§a■■■■","§a■■■■■■§2■§a■■■","§a■■■■■■■§2■§a■■","§a■■■■■■■■§2■§a■","§a■■■■■■■■■§2■"};
+
+					@Override
+					public void run() {
+						if (this.timer == 10) {
+							cancel();
+							return;
+						}
+						sign.setLine(3, this.display[this.timer]);
+						sign.update();
+						this.timer++;
+					}
+				}.runTaskTimer(DeACoudre.getPlugin(DeACoudre.class), 0L, 2L);
+
 				break;
 			case IN_PROGRESS:
 				this.sign.setLine(1, this.deACoudreGame.getAliveDeACoudreGamePlayer().size() + " en jeu");
-				this.sign.setLine(2, "DàC : " + this.deACoudreGame.getTotalPerfectJump());
-				this.sign.setLine(3, ChatColor.GOLD + "En cours ...");
+				this.sign.setLine(2, "§eDé à Coudre : " + this.deACoudreGame.getTotalPerfectJump());
+				new BukkitRunnable() {
+					int timer = 0;
+
+					final String[] display = { "§6■§e■■■■■■■■■","§e■§6■§e■■■■■■■■","§e■■§6■§e■■■■■■■","§e■■■§6■§e■■■■■■","§e■■■■§6■§e■■■■■",
+							"§e■■■■■§6■§e■■■■","§e■■■■■■§6■§e■■■","§e■■■■■■■§6■§e■■","§e■■■■■■■■§6■§e■","§e■■■■■■■■■§6■"};
+
+					@Override
+					public void run() {
+						if (this.timer == 10) {
+							cancel();
+							return;
+						}
+						sign.setLine(3, this.display[this.timer]);
+						sign.update();
+						this.timer++;
+					}
+				}.runTaskTimer(DeACoudre.getPlugin(DeACoudre.class), 0L, 2L);
 				break;
 			case FINISH:
-				this.sign.setLine(1, "Bravo à");
-				if (this.deACoudreGame.getWinner() != null) {
-					this.sign.setLine(2, this.deACoudreGame.getWinner().getPlayer().getName());
-				} else {
-					this.sign.setLine(2, "personne :(");
-				}
-				this.sign.setLine(3, ChatColor.LIGHT_PURPLE + "Terminé !");
+				this.sign.setLine(1, this.deACoudreGame.getDeACoudreGamePlayers().size()
+						+ " / " + this.deACoudreGame.getMaxPlayers());
+				this.sign.setLine(2, "§cNettoyage");
+				new BukkitRunnable() {
+					int timer = 0;
+
+					final String[] display = { "§4■§c■■■■■■■■■","§c■§4■§c■■■■■■■■","§c■■§4■§c■■■■■■■","§c■■■§4■§c■■■■■■","§c■■■■§4■§c■■■■■",
+							"§c■■■■■§4■§c■■■■","§c■■■■■■§4■§c■■■","§c■■■■■■■§4■§c■■","§c■■■■■■■■§4■§c■","§c■■■■■■■■■§4■"};
+
+					@Override
+					public void run() {
+						if (this.timer == 10) {
+							cancel();
+							return;
+						}
+						sign.setLine(3, this.display[this.timer]);
+						sign.update();
+						this.timer++;
+					}
+				}.runTaskTimer(DeACoudre.getPlugin(DeACoudre.class), 0L, 2L);
 				break;
 		}
 		this.sign.update();

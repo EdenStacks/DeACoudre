@@ -31,7 +31,7 @@ public class DeACoudreScoreboard {
                 "DAC - " + this.deACoudreGame.getName(),
                 "dummy",
                 ChatColor.translateAlternateColorCodes('&', this.deACoudreGame.getDeACoudreGamePrefix()
-                        + " &8&l| &d" + this.deACoudreGame.getTimer())
+                        + "&d" + this.deACoudreGame.getTimer())
         );
         this.objective.setDisplaySlot(DisplaySlot.SIDEBAR);
         setLines();
@@ -47,26 +47,31 @@ public class DeACoudreScoreboard {
             return;
         }
         this.objective.setDisplayName(ChatColor.translateAlternateColorCodes('&', this.deACoudreGame.getDeACoudreGamePrefix()
-                + " &8&l| &d" + this.deACoudreGame.getTimer()));
+                + "&d" + this.deACoudreGame.getTimer()));
         setLines();
         playerList.forEach(player -> player.setScoreboard(this.board));
     }
 
     public void setLines() {
-        String jumperName = this.deACoudreGame.getJumperName();
+        this.board.getEntries().forEach(s -> this.board.resetScores(s));
         Score line1 = this.objective.getScore("§f");
-        line1.setScore(2);
+        line1.setScore(4);
+        String jumperName = this.deACoudreGame.getJumperName();
         Score line2 = objective.getScore(ChatColor.translateAlternateColorCodes(
                 '&',
-                "&eJumper &f: &d" + jumperName
+                "&7Jumper &f: &d" + jumperName
         ));
-        line2.setScore(1);
+        line2.setScore(3);
         String nextJumperName = this.deACoudreGame.getNextJumperName();
         Score line3 = this.objective.getScore(ChatColor.translateAlternateColorCodes(
                 '&',
-                "&eNext Jumper &f: &d" + nextJumperName
+                "&7Prochain Jumper &f: &d" + nextJumperName
         ));
-        line3.setScore(0);
+        line3.setScore(2);
+        Score line4 = this.objective.getScore("§e");
+        line4.setScore(1);
+        Score line5 = this.objective.getScore("§fVous jouez sur §eedencraft.fr");
+        line5.setScore(0);
     }
 
     public void addToPlayer(Player player) {

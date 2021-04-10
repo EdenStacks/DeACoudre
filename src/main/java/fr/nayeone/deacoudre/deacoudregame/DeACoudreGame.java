@@ -57,7 +57,7 @@ public class DeACoudreGame implements Listener {
 	private final DeACoudreScoreboard deACoudreScoreboard = new DeACoudreScoreboard(this);
 	private final List<DeACoudreGamePlayer> deACoudreGamePlayers = new ArrayList<>();
 	private final List<DeACoudreGamePlayer> playerList = new ArrayList<>();
-	private DeACoudreGamePlayer winner;
+	private final List<DeACoudreGamePlayer> winners = new ArrayList<>();
 	private DeACoudreGamePlayer jumper;
 	private int nextPlayerNumber;
 	private GameState gameState;
@@ -245,6 +245,7 @@ public class DeACoudreGame implements Listener {
 			if (this.task != null) {
 				this.task.cancel();
 			}
+			if (!this.winners.isEmpty()) this.winners.clear();
 			this.task = new BukkitRunnable() {
 				@Override
 				public void run() {
@@ -268,8 +269,14 @@ public class DeACoudreGame implements Listener {
 				player.teleport(this.endLocation);
 			});
 			if (getAliveDeACoudreGamePlayer().size() != 0 && deACoudreGame.getPoolRegion().hasWaterInside()) {
-				this.winner = getAliveDeACoudreGamePlayer().get(0);
-				Bukkit.getPluginManager().callEvent(new PlayerWinEvent(this, this.winner.getPlayer()));
+				DeACoudreGamePlayer winner = getAliveDeACoudreGamePlayer().get(0);
+				this.winners.add(winner);
+				Bukkit.getPluginManager().callEvent(new PlayerWinEvent(this, winner.getPlayer()));
+			} else if (getAliveDeACoudreGamePlayer().size() != 0 && !deACoudreGame.getPoolRegion().hasWaterInside()) {
+				for (DeACoudreGamePlayer winner : getAliveDeACoudreGamePlayer()) {
+					this.winners.add(winner);
+					Bukkit.getPluginManager().callEvent(new PlayerWinEvent(this, winner.getPlayer()));
+				}
 			}
 			this.deACoudreGamePlayers.clear();
 			this.playerList.clear();
@@ -316,14 +323,14 @@ public class DeACoudreGame implements Listener {
 		jumpTimer = startChecker();
 
 		nextPlayerNumber++;
-		if (nextPlayerNumber == playerList.size() + 1) {
+		if (nextPlayerNumber > playerList.size()) {
 			nextPlayerNumber = 1;
 		}
 		while (!playerList.get(nextPlayerNumber - 1).isAlive()) {
-			if (nextPlayerNumber == playerList.size() + 1) {
+			nextPlayerNumber++;
+			if (nextPlayerNumber > playerList.size()) {
 				nextPlayerNumber = 1;
 			}
-			nextPlayerNumber++;
 		}
 		playerList.get(nextPlayerNumber - 1).getPlayer().sendMessage(getDeACoudreGamePrefix() + "Tu es le prochain à sauter.");
 	}
@@ -450,6 +457,9 @@ public class DeACoudreGame implements Listener {
 			if (this.gameState.equals(GameState.IN_PROGRESS)) {
 				this.playerList.get(this.playerList.indexOf(deACoudreGamePlayer)).setAlive(false);
 			}
+			if (this.jumper != null && this.jumper.equals(deACoudreGamePlayer)) {
+				nextJumper();
+			}
 			this.deACoudreGamePlayers.remove(deACoudreGamePlayer);
 			player.getInventory().clear();
 			player.teleport(this.endLocation);
@@ -515,6 +525,7 @@ public class DeACoudreGame implements Listener {
 				if (this.jumper.getLifePoint() <= 1) {
 					this.jumper.getPlayer().teleport(this.spectatorLocation);
 					this.jumper.getPlayer().sendMessage(getDeACoudreGamePrefix() + "Tu as été éliminé.");
+					this.jumper.getPlayer().setLevel(0);
 					this.jumper.getPlayer().playSound(this.jumper.getPlayer().getLocation(), Sound.BLOCK_BELL_USE, 0.5F, 1);
 					this.jumper.setAlive(false);
 					this.jumper.getPlayer().setLevel(this.jumper.getLifePoint());
@@ -741,8 +752,8 @@ public class DeACoudreGame implements Listener {
 		return isBuild;
 	}
 
-	public DeACoudreGamePlayer getWinner() {
-		return winner;
+	public List<DeACoudreGamePlayer> getWinners() {
+		return winners;
 	}
 
 	public GameState getGameState() {

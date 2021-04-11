@@ -12,6 +12,8 @@ import org.bukkit.block.Block;
 import org.bukkit.block.Sign;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.entity.EntityType;
+import org.bukkit.entity.Firework;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -21,11 +23,13 @@ import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.FireworkMeta;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
@@ -261,13 +265,6 @@ public class DeACoudreGame implements Listener {
 			this.timer = 15;
 			Bukkit.getPluginManager().callEvent(new DACStartEvent(deACoudreGame));
 		} else if (gameStateFrom.equals(GameState.IN_PROGRESS) && gameStateTo.equals(GameState.FINISH)) {
-			this.deACoudreGamePlayers.forEach(deACoudreGamePlayer -> {
-				Player player = deACoudreGamePlayer.getPlayer();
-				player.getInventory().clear();
-				player.setLevel(0);
-				this.deACoudreScoreboard.removeToPlayer(player);
-				player.teleport(this.endLocation);
-			});
 			if (getAliveDeACoudreGamePlayer().size() != 0 && deACoudreGame.getPoolRegion().hasWaterInside()) {
 				DeACoudreGamePlayer winner = getAliveDeACoudreGamePlayer().get(0);
 				this.winners.add(winner);
@@ -278,6 +275,31 @@ public class DeACoudreGame implements Listener {
 					Bukkit.getPluginManager().callEvent(new PlayerWinEvent(this, winner.getPlayer()));
 				}
 			}
+			this.winners.forEach(deACoudreGamePlayer -> {
+				DeACoudreGamePlayerStats deACoudreGamePlayerStats = deACoudreGamePlayer.getDeACoudreGamePlayerStats();
+				deACoudreGamePlayerStats.addGameWin(1);
+				deACoudreGamePlayerStats.addWinPoint(this.winPoints);
+			});
+			this.playerList.forEach(deACoudreGamePlayer -> {
+				if (!this.winners.contains(deACoudreGamePlayer)) {
+					deACoudreGamePlayer.getDeACoudreGamePlayerStats().addGameLose(1);
+				}
+			});
+			this.deACoudreGamePlayers.forEach(deACoudreGamePlayer -> {
+				Player player = deACoudreGamePlayer.getPlayer();
+				player.getInventory().clear();
+				player.setLevel(0);
+				this.deACoudreScoreboard.removeToPlayer(player);
+				player.teleport(this.endLocation);
+				StringBuilder winners = new StringBuilder(" ");
+				this.winners.forEach(winner -> winners.append(winner.getPlayer().getName()).append("§f,§e "));
+				if (this.winners.size() > 1) {
+					deACoudreGamePlayer.getPlayer().sendMessage(getDeACoudreGamePrefix() + "Les gagnants sont§e" + winners.toString() + "§fbravo à eux !");
+				} else {
+					deACoudreGamePlayer.getPlayer().sendMessage(getDeACoudreGamePrefix() + "Le gagnant est§e" + winners.toString() + "§fbravo à lui !");
+				}
+				deACoudreGamePlayer.getDeACoudreGamePlayerStats().save();
+			});
 			this.deACoudreGamePlayers.clear();
 			this.playerList.clear();
 			this.jumper = null;
@@ -322,6 +344,10 @@ public class DeACoudreGame implements Listener {
 		this.timer = 15;
 		jumpTimer = startChecker();
 
+		nextPlayerNumber();
+	}
+
+	private void nextPlayerNumber() {
 		nextPlayerNumber++;
 		if (nextPlayerNumber > playerList.size()) {
 			nextPlayerNumber = 1;
@@ -356,6 +382,8 @@ public class DeACoudreGame implements Listener {
 			oldJumper.setPerfectJumpCount(oldJumper.getPerfectJumpCount() + 1);
 			oldJumper.setLifePoint(oldJumper.getLifePoint() + 1);
 			oldJumper.getPlayer().setLevel(oldJumper.getLifePoint());
+			oldJumper.getDeACoudreGamePlayerStats().addPerfectJump(1);
+			launchFireWork(oldJumper.getPlayer().getLocation());
 			sound = Sound.BLOCK_NOTE_BLOCK_GUITAR;
 			blockToFill = Material.EMERALD_BLOCK;
 		}
@@ -379,12 +407,27 @@ public class DeACoudreGame implements Listener {
 		updateState();
 	}
 
+	private void launchFireWork(Location location) {
+		location.add(0, 1, 0);
+		Firework fw = (Firework) location.getWorld().spawnEntity(location, EntityType.FIREWORK);
+		FireworkMeta fwm = fw.getFireworkMeta();
+		FireworkEffect.Builder builder = FireworkEffect.builder();
+		fwm.addEffect(builder.flicker(true).withColor(Color.FUCHSIA).build());
+		fwm.addEffect(builder.trail(true).build());
+		fwm.addEffect(builder.withFade(Color.YELLOW).build());
+		fwm.addEffect(builder.with(FireworkEffect.Type.BURST).build());
+		fwm.setPower(30);
+		fw.setFireworkMeta(fwm);
+		fw.detonate();
+	}
+
 	@EventHandler
 	public void onStart(DACStartEvent event) {
 		DeACoudreGame deACoudreGame = event.getDeACoudreGame();
 		if (!deACoudreGame.equals(this)) return;
 		this.playerList.clear();
 		this.playerList.addAll(this.deACoudreGamePlayers);
+		this.playerList.forEach(deACoudreGamePlayer -> deACoudreGamePlayer.getDeACoudreGamePlayerStats().addTotalGame(1));
 		this.nextPlayerNumber = 2;
 		this.jumper = this.deACoudreGamePlayers.get(0);
 		this.jumper.getPlayer().teleport(this.divingLocation);
@@ -459,6 +502,9 @@ public class DeACoudreGame implements Listener {
 			}
 			if (this.jumper != null && this.jumper.equals(deACoudreGamePlayer)) {
 				nextJumper();
+			} else if (getNextJumper() != null && getNextJumper().equals(deACoudreGamePlayer)) {
+				getNextJumper().setAlive(false);
+				nextPlayerNumber();
 			}
 			this.deACoudreGamePlayers.remove(deACoudreGamePlayer);
 			player.getInventory().clear();
@@ -517,11 +563,22 @@ public class DeACoudreGame implements Listener {
 	}
 
 	@EventHandler
+	public void onPlayerSendCommand(PlayerCommandPreprocessEvent event) {
+		List<String> blacklistedCommand = ConfigurationUtils.getBlackListCommand();
+		Player player = event.getPlayer();
+		if (isInThisDeACoudreGame(player) && blacklistedCommand.contains(event.getMessage())) {
+			event.getPlayer().sendMessage(getDeACoudreGamePrefix() + "§cTu ne peux pas faire ça ici.");
+			event.setCancelled(true);
+		}
+	}
+
+	@EventHandler
 	public void onPlayerTakeDamage(EntityDamageEvent event) {
 		if (!(event.getEntity() instanceof Player)) return;
 		Player player = (Player) event.getEntity();
 		if (playerIsInDeACoudreGame(player) && event.getCause().equals(EntityDamageEvent.DamageCause.FALL)) {
 			if (this.jumper.getPlayer().equals(player)) {
+				DeACoudreGamePlayerStats jumperStats = this.jumper.getDeACoudreGamePlayerStats();
 				if (this.jumper.getLifePoint() <= 1) {
 					this.jumper.getPlayer().teleport(this.spectatorLocation);
 					this.jumper.getPlayer().sendMessage(getDeACoudreGamePrefix() + "Tu as été éliminé.");
@@ -529,10 +586,11 @@ public class DeACoudreGame implements Listener {
 					this.jumper.getPlayer().playSound(this.jumper.getPlayer().getLocation(), Sound.BLOCK_BELL_USE, 0.5F, 1);
 					this.jumper.setAlive(false);
 					this.jumper.getPlayer().setLevel(this.jumper.getLifePoint());
+					this.deACoudreGamePlayers.forEach(deACoudreGamePlayer -> deACoudreGamePlayer.getPlayer().sendMessage(
+							getDeACoudreGamePrefix() + ChatColor.YELLOW + this.jumper.getPlayer().getName() + ChatColor.WHITE + " a été éliminé."));
 					if (!(getAliveDeACoudreGamePlayer().size() <= 1)) {
 						nextJumper();
 					}
-					updateState();
 				} else {
 					this.jumper.setLifePoint(this.jumper.getLifePoint() - 1);
 					player.sendMessage(getDeACoudreGamePrefix() + "Tu as perdu une vie.");
@@ -541,6 +599,8 @@ public class DeACoudreGame implements Listener {
 					this.jumper.getPlayer().setLevel(this.jumper.getLifePoint());
 					nextJumper();
 				}
+				jumperStats.addMissedJump(1);
+				updateState();
 				event.setCancelled(true);
 			}
 			event.setCancelled(true);
@@ -633,9 +693,8 @@ public class DeACoudreGame implements Listener {
 	private void joinMessage(Player joiner) {
 		this.deACoudreGamePlayers.forEach(deACoudreGamePlayer1 -> {
 			Player player1 = deACoudreGamePlayer1.getPlayer();
-			if (player1.equals(joiner)) return;
 			player1.sendMessage(getDeACoudreGamePrefix() + ChatColor.YELLOW +
-					joiner.getName() + ChatColor.GREEN + " vient de rejoindre la partie.");
+					joiner.getName() + ChatColor.GREEN + " vient de rejoindre la partie. §f(§a" + this.deACoudreGamePlayers.size() + "§f/§2" + this.maxPlayers + "§f)");
 		});
 	}
 

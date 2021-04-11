@@ -6,3 +6,4 @@ prefix: DeACoudre
 authors: [ NayeOne ]
 description: Play DeACoudre in your own world !
 website: https://github.com/LudovicAns
+softdepend: [ PlaceholderAPI ]

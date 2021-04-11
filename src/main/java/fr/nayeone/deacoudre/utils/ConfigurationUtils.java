@@ -101,4 +101,9 @@ public class ConfigurationUtils {
 		}
 	}
 
+	public static List<String> getBlackListCommand() {
+		FileConfiguration cfg = DeACoudre.getConfigurationManager().getConfigurationFile("config.yml");
+		return cfg.getStringList("command-blacklist");
+	}
+
 }

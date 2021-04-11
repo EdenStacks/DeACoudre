@@ -10,6 +10,8 @@ import fr.nayeone.deacoudre.runnable.UpdaterRunnable;
 import fr.nayeone.deacoudre.utils.ConfigurationUtils;
 import fr.nayeone.deacoudre.deacoudregame.DeACoudreGame;
 import fr.nayeone.deacoudre.deacoudregame.utils.DeACoudreGameSign;
+import fr.nayeone.deacoudre.utils.DeACoudreExpansion;
+import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
@@ -38,6 +40,10 @@ public final class DeACoudre extends JavaPlugin{
 		playerdataManager = new PlayerdataManager(configurationManager);
 		listenerManager = new ListenerManager(this);
 		new CommandManager(this);
+		// Small check to make sure that PlaceholderAPI is installed
+		if(Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null){
+			new DeACoudreExpansion(this).register();
+		}
 		getLogger().log(Level.INFO, "Building all DAC ...");
 		initAllDAC();
 		getLogger().log(Level.INFO, "End of DAC build.");

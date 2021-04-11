@@ -145,4 +145,28 @@ public class DeACoudreGamePlayerStats {
 		return isLoaded;
 	}
 
+	public void addGameLose(int n) {
+		this.gameLose += n;
+	}
+
+	public void addGameWin(int n) {
+		this.gameWin += n;
+	}
+
+	public void addMissedJump(int n) {
+		this.missedJump += n;
+	}
+
+	public void addTotalGame(int n) {
+		this.totalGame += n;
+	}
+
+	public void addPerfectJump(int n) {
+		this.perfectJump += n;
+	}
+
+	public void addWinPoint(int n) {
+		this.winPoint += n;
+	}
+
 }

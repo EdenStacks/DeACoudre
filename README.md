@@ -6,7 +6,7 @@ DeACoudre is a minecraft mini games plugin. Players have one objective, fill the
 
 - Create multiple DAC games in one minecraft server
 - Easy configuration by using in-game commands
-- [SOON] Compatibility with PlaceHolderAPI
+- Compatibility with PlaceHolderAPI
 
 ## Create DAC
 
@@ -61,3 +61,11 @@ To create a DeACoudre follow carrefully steps bellow.
     > Be sure you are looking a sign before perform this command.
     
     `/dac set sign myDAC`
+
+## Placeholders list
+- `%dac_total_game%`
+- `%dac_game_win%`
+- `%dac_game_lose%`
+- `%dac_win_point%`
+- `%dac_perfect_jump%`
+- `%dac_missed_jump%`

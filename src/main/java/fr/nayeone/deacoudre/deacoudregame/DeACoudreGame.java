@@ -439,9 +439,6 @@ public class DeACoudreGame implements Listener {
 				if (timer == 0) {
 					timer = 15;
 					Bukkit.getPluginManager().callEvent(new PlayerQuitDACEvent(jumper.getPlayer(), deACoudreGame, QuitCause.AFK));
-					if (getAliveDeACoudreGamePlayer().size() > 1) {
-						nextJumper();
-					}
 				} else if (timer <= 8) {
 					jumper.getPlayer().playSound(jumper.getPlayer().getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 1, 1);
 				}

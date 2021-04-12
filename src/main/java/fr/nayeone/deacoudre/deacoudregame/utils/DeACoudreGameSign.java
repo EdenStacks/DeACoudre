@@ -84,7 +84,7 @@ public class DeACoudreGameSign {
 
 				break;
 			case IN_PROGRESS:
-				this.sign.setLine(1, this.deACoudreGame.getAliveDeACoudreGamePlayer().size() + " en jeu");
+				this.sign.setLine(1, this.deACoudreGame.getDeACoudreGamePlayers().size() + " en jeu");
 				this.sign.setLine(2, "§eDé à Coudre : " + this.deACoudreGame.getTotalPerfectJump());
 				new BukkitRunnable() {
 					int timer = 0;

@@ -53,25 +53,39 @@ public class DeACoudreScoreboard {
     }
 
     public void setLines() {
+        //0 §f
+        //1 &7Jumper&f: &d + jumperName
+        //2 &7Prochain Jumper&f: &d + nextJumperName
+        //3 §e
+        //4 §7Joueurs en jeu§f: §d +
+        //5 §7Joueurs en vie§f: §d +
+        //6 §d
+        //7 §fVous jouez sur §eedencraft.fr
         this.board.getEntries().forEach(s -> this.board.resetScores(s));
         Score line1 = this.objective.getScore("§f");
-        line1.setScore(4);
+        line1.setScore(7);
         String jumperName = this.deACoudreGame.getJumperName();
         Score line2 = objective.getScore(ChatColor.translateAlternateColorCodes(
                 '&',
-                "&7Jumper &f: &d" + jumperName
+                "&7Jumper&f: &d" + jumperName
         ));
-        line2.setScore(3);
+        line2.setScore(6);
         String nextJumperName = this.deACoudreGame.getNextJumperName();
         Score line3 = this.objective.getScore(ChatColor.translateAlternateColorCodes(
                 '&',
-                "&7Prochain Jumper &f: &d" + nextJumperName
+                "&7Prochain Jumper&f: &d" + nextJumperName
         ));
-        line3.setScore(2);
+        line3.setScore(5);
         Score line4 = this.objective.getScore("§e");
-        line4.setScore(1);
-        Score line5 = this.objective.getScore("§fVous jouez sur §eedencraft.fr");
-        line5.setScore(0);
+        line4.setScore(4);
+        Score line5 = this.objective.getScore("§7Joueurs en jeu§f: §d" + this.deACoudreGame.getDeACoudreGamePlayers().size());
+        line5.setScore(3);
+        Score line6 = this.objective.getScore("§7Joueurs en vie§f: §d" + this.deACoudreGame.getAliveDeACoudreGamePlayer().size());
+        line6.setScore(3);
+        Score line7 = this.objective.getScore("§d");
+        line7.setScore(2);
+        Score line8 = this.objective.getScore("§fVous jouez sur §eedencraft.fr");
+        line8.setScore(1);
     }
 
     public void addToPlayer(Player player) {
